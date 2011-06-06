@@ -58,7 +58,7 @@ class DB
 						$this->dbs[$connection_id]->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_SILENT);
 				}
 
-				if (class_exists("DEBUG")) DEBUG::log($this->CONFIG["connections"][$connection_id]["sys"] . " connection established, connection_id=" . $connection_id,"PDO");
+				if (class_exists("DEBUG")) DEBUG::log($this->CONFIG["connections"][$connection_id]["sys"] . " connection established, connection_id=" . $connection_id,"SQL");
 
 				return $this->dbs[$connection_id];
 			}
@@ -93,7 +93,9 @@ class DB
 
 		if (!isset($db) || !($db instanceof PDO)) throw new Exception(__CLASS__ . "::" . __METHOD__ . ": error while retreiving connection, can't get connection");
 
-		if (class_exists("DEBUG")) DEBUG::log_start("PDO QUERY");
+		$query_id = md5($query);
+
+		if (class_exists("DEBUG")) DEBUG::logStart($query_id);
 
 		$is_insert = 0;
 		if (preg_match("/^insert/i",trim($query)))
@@ -118,7 +120,7 @@ class DB
 				$db->commit();
 			}
 
-			if (class_exists("DEBUG")) DEBUG::log_end($query . (isset($opts)?" with opts: " . join(",",$opts):" without opts"),"PDO","PDO QUERY");
+			if (class_exists("DEBUG")) DEBUG::logEnd($query_id,$query,$opts,"SQL");
 
 			if ($is_insert && $insert_id) return $insert_id;
 
@@ -138,7 +140,7 @@ class DB
 			if ($this->CONFIG["errformat"] != "none")
 				echo $out;
 			
-			if (class_exists("DEBUG")) DEBUG::log($error,"PDOException");
+			if (class_exists("DEBUG")) DEBUG::log($query_id,$error,$query,$opts,"IMPORTANT&SQL");
 		}
 		return null;
 	}
@@ -151,13 +153,12 @@ class DB
 
 	static public function f($query,$opts=null,$connection_id=null)
 	{
-		if (class_exists("DEBUG")) DEBUG::log_start("PDO FETCH");
+		$query_id = md5($query);
 		$o = self::getInstance();
 		$res = $o->query($query,$opts,$connection_id);
 		if (isset($res) && ($res instanceof PDOStatement))
 		{
 			$rws = $res->fetchAll();
-			if (class_exists("DEBUG")) DEBUG::log_end($query . (isset($opts)?" with opts: " . join(",",$opts):" without opts"),"PDO+FETCH","PDO FETCH");
 			return $rws;
 		}
 		return null;
@@ -165,14 +166,12 @@ class DB
 
 	static public function f1($query,$opts=null,$connection_id=null)
 	{
-		if (class_exists("DEBUG")) DEBUG::log_start("PDO FETCH");
 		$o = self::getInstance();
 		if (!preg_match("/limit\s*\d+\s*,\s*\d+/",$query))
 			$query .= " limit 0,1";
 		$res = $o->query($query,$opts,$connection_id);
 		if (isset($res) && ($res instanceof PDOStatement)) {
 			$rw = $res->fetch();
-			if (class_exists("DEBUG")) DEBUG::log_end($query . (isset($opts)?" with opts: " . join(",",$opts):" without opts"),"PDO+FETCH ONE","PDO FETCH");
 			return $rw;
 		}
 		return null;
