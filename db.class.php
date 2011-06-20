@@ -93,7 +93,7 @@ class DB
 
 		if (!isset($db) || !($db instanceof PDO)) throw new Exception(__CLASS__ . "::" . __METHOD__ . ": error while retreiving connection, can't get connection");
 
-		$query_id = md5($query);
+		$query_id = md5($query . ($opts?join(",",$opts):""));
 
 		if (class_exists("DEBUG")) DEBUG::logStart($query_id);
 
@@ -131,6 +131,12 @@ class DB
 			if ($is_insert)
 				$db->rollback();
 
+			if (class_exists("DEBUG"))
+			{
+				DEBUG::logEnd($query_id,$e->getMessage(),$query,$opts,"ERROR&SQL");
+				return null;
+			}
+
 			$error = "PDOException: " . $e->getMessage() . "\nOccurs in query: " . $query . (isset($opts)?" with opts: " . (join(",",$opts)):" without opts");
 			if ($this->CONFIG["errformat"] == "html")
 				$out = "<div style='margin: 10px; border: 1px solid #dedede; padding: 5px; font-size: 0.85em;'>" . str_replace("\n","<br />",$error) . "</div>";
@@ -140,7 +146,6 @@ class DB
 			if ($this->CONFIG["errformat"] != "none")
 				echo $out;
 			
-			if (class_exists("DEBUG")) DEBUG::log($query_id,$error,$query,$opts,"IMPORTANT&SQL");
 		}
 		return null;
 	}
